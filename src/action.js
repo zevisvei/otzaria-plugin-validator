@@ -330,6 +330,8 @@ async function maybePublish(validated, buildCache) {
   const reportsConsent = readBool('reports-consent', false)
   const updateScreenshots = readBool('update-screenshots', false)
   const imageInput = readInput('image', '')
+  const descriptionFile = readInput('description-file', '').trim()
+  const updateDescription = readBool('update-description', false)
   const updateImage = readBool('update-image', false)
 
   const client = new StoreClient(baseUrl, (m) => ga.info(m))
@@ -367,6 +369,15 @@ async function maybePublish(validated, buildCache) {
       })
       if (picked.warning) ga.warning(picked.warning)
 
+      // תיאור מלא מקובץ (טקסט; ירידות שורה נשמרות בחנות). בדחיפה ראשונה — אם אין קלט description;
+      // בעדכון — רק עם update-description, כדי לא לדרוס תיאור שנערך באתר.
+      let longDescription = description
+      if (descriptionFile) {
+        const found = [path.resolve(source.root, descriptionFile), path.resolve(process.cwd(), descriptionFile)].find((f) => fs.existsSync(f))
+        if (found) longDescription = longDescription || fs.readFileSync(found, 'utf8').replace(/\r\n?/g, '\n').trim()
+        else ga.warning(`קובץ התיאור "${descriptionFile}" לא נמצא — מדלג עליו`)
+      }
+
       let res
       if (id) {
         // צילומי מסך בעדכון — רק באישור מפורש (update-screenshots), כי הם מחליפים
@@ -379,10 +390,10 @@ async function maybePublish(validated, buildCache) {
             throw new Error('update-screenshots מופעל אך לא נמצא אף צילום מסך בקלט screenshots')
           }
         }
-        res = await client.edit({ id, pluginFile: built.path, manifest, syncMetadata, force, screenshots, image: updateImage ? picked.path : null })
+        res = await client.edit({ id, pluginFile: built.path, manifest, syncMetadata, force, screenshots, image: updateImage ? picked.path : null, description: updateDescription ? longDescription : null })
       } else {
         const screenshots = resolveScreenshots(screenshotsRaw, source.root)
-        res = await client.upload({ pluginFile: built.path, manifest, description, screenshots, tags: [], reportsConsent, image: picked.path })
+        res = await client.upload({ pluginFile: built.path, manifest, description: longDescription, screenshots, tags: [], reportsConsent, image: picked.path })
         if (res.storeId) ga.info(`מזהה התוסף החדש בחנות: ${res.storeId}`)
       }
 

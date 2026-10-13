@@ -211,7 +211,8 @@ class StoreClient {
   // screenshots: when non-empty, REPLACES all of the plugin's store screenshots
   // (the store's edit route swaps the whole set; there is no per-image append).
   // image: when set, REPLACES the plugin's store image (imageFile).
-  async edit({ id, pluginFile, manifest, syncMetadata = true, force = false, screenshots = [], image = null }) {
+  // description: when a string, REPLACES the plugin's long store description.
+  async edit({ id, pluginFile, manifest, syncMetadata = true, force = false, screenshots = [], image = null, description = null }) {
     let url = this.editUrl(id)
     let currentRes = await fetchWithCookies(this.jar, url)
     if (currentRes.status === 403) {
@@ -235,6 +236,10 @@ class StoreClient {
     }
 
     const fields = resolveUpdateFields({ manifest, current, syncMetadata })
+    if (typeof description === 'string' && description.trim()) {
+      fields.description = description.trim()
+      this.log('התיאור המלא בחנות יוחלף בתיאור מהמאגר')
+    }
     const form = new FormData()
     for (const [k, v] of Object.entries(fields)) form.set(k, v)
     form.set('pluginFile', new Blob([fs.readFileSync(pluginFile)]), path.basename(pluginFile))

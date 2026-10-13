@@ -21,6 +21,8 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--update-screenshots') process.env['INPUT_UPDATE-SCREENSHOTS'] = 'true'
   else if (a === '--image') process.env.INPUT_IMAGE = args[++i] || ''
   else if (a === '--update-image') process.env['INPUT_UPDATE-IMAGE'] = 'true'
+  else if (a === '--description-file') process.env['INPUT_DESCRIPTION-FILE'] = args[++i] || ''
+  else if (a === '--update-description') process.env['INPUT_UPDATE-DESCRIPTION'] = 'true'
   else if (a === '--description') process.env.INPUT_DESCRIPTION = args[++i] || ''
   else if (a === '--no-sync-metadata') process.env['INPUT_SYNC-METADATA'] = 'false'
   else if (a === '--force') process.env.INPUT_FORCE = 'true'

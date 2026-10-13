@@ -720,6 +720,17 @@ test('network-mocked scenarios (publish fallback + pr comment)', async () => {
     sent.length = 0
     await new StoreClient('https://otzaria.org').edit({ id: 'abc123', pluginFile, manifest: { version: '1.1.0' } })
     assert.deepStrictEqual(sent[0].body.getAll('screenshots'), [])
+    // בלי description — התיאור הקיים בחנות נשמר (ב-GET המדומה אין תיאור → ריק)
+    assert.strictEqual(sent[0].body.get('description'), '')
+    assert.strictEqual(sent[0].body.get('imageFile'), null)
+
+    // עם description (update-description) — התיאור המלא מוחלף; ועם image — תמונת התוסף נשלחת
+    sent.length = 0
+    await new StoreClient('https://otzaria.org').edit({
+      id: 'abc123', pluginFile, manifest: { version: '1.1.0' }, description: 'שורה 1\nשורה 2', image: shots[0],
+    })
+    assert.strictEqual(sent[0].body.get('description'), 'שורה 1\nשורה 2')
+    assert.strictEqual(sent[0].body.get('imageFile').name, 'a.png')
 
     // יותר מ-10 צילומים נדחים לפני השליחה.
     sent.length = 0
