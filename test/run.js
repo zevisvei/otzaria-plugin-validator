@@ -11,7 +11,7 @@ const { buildManifest, validateManifestFields } = require('../src/manifestValida
 const { extractZipFiles } = require('../src/zip')
 const { buildOtzplugin } = require('../src/zipWriter')
 const { analyzeReachability } = require('../src/reachability')
-const { resolveUpdateFields, imageContentType, StoreClient, retryConfig, MAX_SCREENSHOTS } = require('../src/publish')
+const { resolveUpdateFields, imageContentType, pickStoreImage, StoreClient, retryConfig, MAX_SCREENSHOTS } = require('../src/publish')
 const { MARKER, buildCommentBody, replaceSummaryComment } = require('../src/prComment')
 const {
   buildFallbackSpec,
@@ -93,6 +93,24 @@ function makeStoredZip(files) {
 }
 
 process.stdout.write('Otzaria Plugin Validator — tests\n')
+
+test('pickStoreImage: קלט image, נפילה ל-icon שב-manifest, ואזהרות', () => {
+  const files = new Set(['/p/assets/icon.png', '/repo/store.webp', '/p/logo.svg'])
+  const exists = (f) => files.has(f)
+  const base = { pluginRoot: '/p', repoRoot: '/repo', exists }
+  assert.deepStrictEqual(pickStoreImage({ ...base, manifestIcon: 'assets/icon.png' }), { path: '/p/assets/icon.png' })
+  // קלט מפורש גובר על ה-icon, ונמצא גם בשורש המאגר
+  assert.deepStrictEqual(pickStoreImage({ ...base, imageInput: 'store.webp', manifestIcon: 'assets/icon.png' }), { path: '/repo/store.webp' })
+  assert.deepStrictEqual(pickStoreImage({ ...base }), { path: null })
+  const missing = pickStoreImage({ ...base, imageInput: 'nope.png' })
+  assert.strictEqual(missing.path, null)
+  assert.ok(/לא נמצאה/.test(missing.warning))
+  // icon חסר בדיסק — בלי אזהרה (ה-manifest validator כבר מדווח עליו)
+  assert.deepStrictEqual(pickStoreImage({ ...base, manifestIcon: 'gone.png' }), { path: null, warning: null })
+  const svg = pickStoreImage({ ...base, manifestIcon: 'logo.svg' })
+  assert.strictEqual(svg.path, null)
+  assert.ok(/png\/jpeg/.test(svg.warning))
+})
 
 test('valid plugin passes with no errors', () => {
   const r = validateSource({ kind: 'dir', root: fx('valid-plugin') }, opts)
